@@ -1,6 +1,10 @@
 import { Cloud, zkCloudWorker } from "zkcloudworker";
-import { ExampleWorker } from "./src/worker";
+import { EncryptedWorker } from "./src/worker";
 
-export async function createWorker(cloud: Cloud): Promise<zkCloudWorker> {
-  return new ExampleWorker(cloud);
+// Keep this for compatibility
+export async function zkcloudworker(
+  cloud: Cloud,
+  clientAddress: string
+): Promise<EncryptedWorker> {
+  return new EncryptedWorker(cloud, clientAddress);
 }
