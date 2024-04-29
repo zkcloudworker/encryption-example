@@ -1,8 +1,9 @@
 import { zkCloudWorker, Cloud } from "zkcloudworker";
 import { verify, Field, PrivateKey, PublicKey } from "o1js";
-import { CypherText } from "./encrypt";
-
 import { ExampleZkApp } from "./contract";
+import { CypherText } from "./encryption";
+import { postDoneMessage, postReadyMessage } from "./caller"
+import { connect, JSONCodec } from "nats";
 
 export class EncryptedWorker extends zkCloudWorker {
 
@@ -11,7 +12,7 @@ export class EncryptedWorker extends zkCloudWorker {
   private publicKey: PublicKey; // this worker public key 
   private payload: any; 
 
-  constructor(cloud: Cloud, clientAddress: string) {
+  constructor(cloud: Cloud, clientAddress?: string) {
     super(cloud);
     this.clientAddress = clientAddress || "";
     this.secretKey = PrivateKey.random();
@@ -35,17 +36,27 @@ export class EncryptedWorker extends zkCloudWorker {
    * @param encryptedPayload - where payload = { value: ... }
    * @returns 
    */
-  public async execute(encryptedPayload: any): Promise<string | undefined> {
-    if (!encryptedPayload) throw new Error("No payload received");
+  public async execute(): Promise<string | undefined> {
+    if (this.cloud.args === undefined) throw new Error("args is undefined");
+    const clientAddress = this.cloud.args;
+    console.log("Caller is: ", clientAddress);
 
-    // decrypt payload or raise error
-    let payload = JSON.parse(this.decrypt(
-      encryptedPayload, 
+    // send 'ready' message to the Web Client, with the worker's publicKey
+    // so we can encrypt the payload on the client side using this key
+    const response = await postReadyMessage(
+      clientAddress, 
+      this.getAddress()
+    );
+    let { command, encrypted } = response.data;
+   
+   // decrypt payload or raise error
+    let decrypted = JSON.parse(CypherText.decrypt(
+      encrypted, 
       this.secretKey.toBase58()
     ));
 
     // execute worker code ...
-    const value = parseInt(payload.value);
+    const value = parseInt(decrypted.value);
     this.cloud.log(`Generating the proof for value ${value}`);
     const vk = (await ExampleZkApp.compile()).verificationKey;
     const proof = await ExampleZkApp.check(Field(value));
@@ -54,9 +65,16 @@ export class EncryptedWorker extends zkCloudWorker {
 
     // we must encrypt the result with the client public key
     // or raise error if encryption fails
-    return this.encrypt(
+    let result = CypherText.encrypt(
       JSON.stringify(proof.toJSON(), null, 2),  
-      this.clientAddress
+      clientAddress
     );
+
+    // report the final result to client, this may be redundant
+    // as the result will be returned by the worker itself
+    // but is an experimantal option 
+    await postDoneMessage(clientAddress, result);
+
+    return result;
   }
 }

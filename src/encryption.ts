@@ -1,10 +1,12 @@
-import { Field, PublicKey, PrivateKey, Encoding, Encryption, Group } from 'o1js';
-
-/*
-See: 
-- https://docs.minaprotocol.com/zkapps/o1js-reference/modules/Encryption
-- https://docs.minaprotocol.com/zkapps/o1js-reference/modules/Encoding#stringtofields
-*/
+import {
+  Field,
+  PublicKey,
+  PrivateKey,
+  Encoding,
+  Group,
+  Encryption,
+  initializeBindings
+} from "o1js";
 
 export { CypherText };
 
@@ -65,6 +67,10 @@ class CypherText {
         +` Error ${err}`
       )
     }
+  }
+
+  static async initialize() {
+    await initializeBindings();
   }
 }
 
