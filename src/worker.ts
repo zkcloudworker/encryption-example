@@ -1,20 +1,39 @@
-import { zkCloudWorker, Cloud } from "zkcloudworker";
 import { verify, Field, PrivateKey, PublicKey } from "o1js";
+import { zkCloudWorker, Cloud } from "zkcloudworker";
 import { ExampleZkApp } from "./contract";
 import { CypherText } from "./encryption";
-import { postDoneMessage, postReadyMessage } from "./caller"
-import { connect, JSONCodec } from "nats";
+import { postDoneMessage, postReadyMessage } from "./messages"
+
+let VerificationKey: any | null = null;
+
+
+async function isCompiled(vk: any | null): Promise<any | null> {
+  if (!vk) {
+    // TODO: use cache !
+    try {
+      let t0 = Date.now()
+      const compiled = await ExampleZkApp.compile();
+      vk = compiled.verificationKey;
+      let dt = (Date.now() - t0)/1000;
+      console.log(`Compiled time=${dt}secs`);
+      return vk;
+    }
+    catch (err) {
+      throw Error("Unable to compile SocialcapDeposits contract");
+    }
+  }
+  return vk;
+}
+
 
 export class EncryptedWorker extends zkCloudWorker {
 
-  private clientAddress: string; // the client public key address
   private secretKey: PrivateKey; // this worker private key
   private publicKey: PublicKey; // this worker public key 
   private payload: any; 
 
-  constructor(cloud: Cloud, clientAddress?: string) {
+  constructor(cloud: Cloud) {
     super(cloud);
-    this.clientAddress = clientAddress || "";
     this.secretKey = PrivateKey.random();
     this.publicKey = this.secretKey.toPublicKey();
   }
@@ -36,9 +55,12 @@ export class EncryptedWorker extends zkCloudWorker {
    * @param encryptedPayload - where payload = { value: ... }
    * @returns 
    */
-  public async execute(): Promise<string | undefined> {
-    if (this.cloud.args === undefined) throw new Error("args is undefined");
-    const clientAddress = this.cloud.args;
+  public async execute(transactions: string[]): Promise<string | undefined> {
+    console.log(`Task: ${this.cloud.task}`)
+    console.log(`Args: ${this.cloud.args}`)
+
+    if (!this.cloud.args) throw new Error("args is undefined");
+    const { clientAddress } = JSON.parse(this.cloud.args);
     console.log("Caller is: ", clientAddress);
 
     // send 'ready' message to the Web Client, with the worker's publicKey
@@ -55,12 +77,14 @@ export class EncryptedWorker extends zkCloudWorker {
       this.secretKey.toBase58()
     ));
 
+    // compile if not already done
+    VerificationKey = await isCompiled(VerificationKey);
+    
     // execute worker code ...
     const value = parseInt(decrypted.value);
     this.cloud.log(`Generating the proof for value ${value}`);
-    const vk = (await ExampleZkApp.compile()).verificationKey;
     const proof = await ExampleZkApp.check(Field(value));
-    const verified = await verify(proof, vk);
+    const verified = await verify(proof, VerificationKey);
     this.cloud.log(`Verification result: ${verified}`);
 
     // we must encrypt the result with the client public key
@@ -75,6 +99,6 @@ export class EncryptedWorker extends zkCloudWorker {
     // but is an experimantal option 
     await postDoneMessage(clientAddress, result);
 
-    return result;
+    return JSON.stringify(result);
   }
 }

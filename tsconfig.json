@@ -11,9 +11,9 @@
     "composite": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false,
+    "strictPropertyInitialization": false, // to enable generic constructors, e.g. on CircuitValue
     "moduleResolution": "node"
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }
