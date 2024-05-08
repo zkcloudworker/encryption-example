@@ -61,6 +61,7 @@ export async function listen(subject: string) {
               error: undefined
             }));
           }
+          break;
 
           case 'done': {
             let result = params.result || "";
@@ -77,8 +78,11 @@ export async function listen(subject: string) {
             // sure that all messages in flight get seen
             // by the iterator. After calling drain on the connection
             // the connection closes.
-            //await connection.drain();
+            setTimeout(async () => {
+              await connection.drain()
+            }, 1000);
           }
+          break;
         }
       }
       catch (err) {
