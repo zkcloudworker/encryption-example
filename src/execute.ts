@@ -65,7 +65,7 @@ async function main(args: string[]) {
   console.log("Job encrypted result:", JSON.stringify(jobResult, null, 2));
 
   // extract final worker's 'result'
-  let { result } = jobResult.result;
+  let { result } = JSON.parse(jobResult.result);
   let decrypted = CypherText.decrypt(result, natsClient.secret);
   console.log("Decrypted result:", decrypted);
 }
