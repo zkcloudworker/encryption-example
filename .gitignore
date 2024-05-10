@@ -8,3 +8,5 @@ cache/
 .pnp.loader.mjs
 .vscode/
 dist/
+.env
+.env.*
