@@ -24,46 +24,76 @@ async function listen(subject) {
                 //console.log(`Received message on subject ${subject}:`, data);
                 // Perform processing logic here
                 const { post, params } = data;
-                console.log(`Post: `, post, params);
+                // console.log(`Post: `, post, params);
                 switch (post) {
-                    case 'ready': {
-                        // the workers announces it is ready 
-                        // and we receive the worker's publicKey
-                        let workerKey = params.key || "";
-                        console.log("Received 'ready' message from worker");
-                        console.log("Worker publicKey: ", workerKey);
-                        // we will use its key to encrypt the message
-                        const encryptedPayload = encryption_1.CypherText.encrypt(JSON.stringify({
-                            value: Math.ceil(Math.random() * 100).toString()
-                        }), workerKey);
-                        console.log("Encrypted payload: ", encryptedPayload);
-                        // we reply with the command we want the worker to execute
-                        // and with the encrypted payload 
-                        msg.respond(codec.encode({
-                            success: true,
-                            data: {
-                                command: "execute",
-                                encrypted: encryptedPayload,
-                            },
-                            error: undefined
-                        }));
-                    }
-                    case 'done': {
-                        let result = params.result || "";
-                        console.log("Received 'done' message from worker");
-                        msg.respond(codec.encode({
-                            success: true,
-                            data: { status: 'closed' },
-                            error: undefined
-                        }));
-                        // we want to insure that messages that are in flight
-                        // get processed, so we are going to drain the
-                        // connection. Drain is the same as close, but makes
-                        // sure that all messages in flight get seen
-                        // by the iterator. After calling drain on the connection
-                        // the connection closes.
-                        //await connection.drain();
-                    }
+                    case 'options':
+                        {
+                            // the workers announces it is ready 
+                            // and we receive the worker's publicKey
+                            let workerKey = params.key || "";
+                            console.log("Received 'options' message from worker");
+                            console.log("Worker publicKey: ", workerKey);
+                            // we will use its key to encrypt the message
+                            const encryptedPayload = encryption_1.CypherText.encrypt(JSON.stringify({
+                                envEncryptionKey: "1234"
+                            }), workerKey);
+                            console.log("Encrypted options: ", encryptedPayload);
+                            // we reply with the command we want the worker to execute
+                            // and with the encrypted payload 
+                            msg.respond(codec.encode({
+                                success: true,
+                                data: {
+                                    command: "options",
+                                    encrypted: encryptedPayload,
+                                },
+                                error: undefined
+                            }));
+                        }
+                        break;
+                    case 'ready':
+                        {
+                            // the workers announces it is ready 
+                            // and we receive the worker's publicKey
+                            let workerKey = params.key || "";
+                            console.log("Received 'ready' message from worker");
+                            console.log("Worker publicKey: ", workerKey);
+                            // we will use its key to encrypt the message
+                            const encryptedPayload = encryption_1.CypherText.encrypt(JSON.stringify({
+                                value: Math.ceil(Math.random() * 100).toString()
+                            }), workerKey);
+                            console.log("Encrypted payload: ", encryptedPayload);
+                            // we reply with the command we want the worker to execute
+                            // and with the encrypted payload 
+                            msg.respond(codec.encode({
+                                success: true,
+                                data: {
+                                    command: "execute",
+                                    encrypted: encryptedPayload,
+                                },
+                                error: undefined
+                            }));
+                        }
+                        break;
+                    case 'done':
+                        {
+                            let result = params.result || "";
+                            console.log("Received 'done' message from worker");
+                            msg.respond(codec.encode({
+                                success: true,
+                                data: { status: 'closed' },
+                                error: undefined
+                            }));
+                            // we want to insure that messages that are in flight
+                            // get processed, so we are going to drain the
+                            // connection. Drain is the same as close, but makes
+                            // sure that all messages in flight get seen
+                            // by the iterator. After calling drain on the connection
+                            // the connection closes.
+                            setTimeout(async () => {
+                                await connection.drain();
+                            }, 1000);
+                        }
+                        break;
                 }
             }
             catch (err) {

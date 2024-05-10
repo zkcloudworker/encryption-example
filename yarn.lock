@@ -6,11 +6,11 @@ __metadata:
   cacheKey: 10c0
 
 "@types/node@npm:^20.12.10":
-  version: 20.12.10
-  resolution: "@types/node@npm:20.12.10"
+  version: 20.12.11
+  resolution: "@types/node@npm:20.12.11"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/2cc3b6ea09894ed1a3cf39f6491ec539281580f4ff83216e7d26ce85c83237fe0543c0ca49e25b2515ccdb6c8814b488d17a64a05f536dcaea94f9d32a60c7d7
+  checksum: 10c0/efaa7b08c50ba6e6982ac7d531ba08d5935539ba76e954807df1ff9382a319ead7e003ccaca5ad7cf33ecf53f212507f7c1f2794bd2ff52df6365fef21f6e1fb
   languageName: node
   linkType: hard
 
@@ -137,11 +137,11 @@ __metadata:
   linkType: hard
 
 "nats@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "nats@npm:2.24.0"
+  version: 2.25.0
+  resolution: "nats@npm:2.25.0"
   dependencies:
     nkeys.js: "npm:1.1.0"
-  checksum: 10c0/fbe137144d10c9553e6ec02500a8a7475885e0580fd5862854dca469baaf54c2607f597c32d60b53751f95c7b0d0d3b8d1f5c227482ff098af2f444a4b2c1c9a
+  checksum: 10c0/d014ee92ee5008c2f40bb407b491fbf4cc120a043a4895d00d64f162708bb518b7be42678ce1f7d0f47b6b036a5c242ca34ec505d116a3c60df19d84493b97b5
   languageName: node
   linkType: hard
 

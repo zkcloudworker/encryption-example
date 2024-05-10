@@ -54,20 +54,20 @@ async function main(args: string[]) {
     transactions: [] // payload will be sent by the NATS client
   });
 
-  console.log("API response:", response);
+  console.log("\nAPI response:", response);
   const jobId = response?.jobId;
   if (jobId === undefined) {
     throw new Error("Job ID is undefined");
   }
 
-  console.log("Waiting for job ...");
+  console.log("\nWaiting for job ...");
   const jobResult = await api.waitForJobResult({ jobId });
   console.log("Job encrypted result:", JSON.stringify(jobResult, null, 2));
 
   // extract final worker's 'result'
-  let { result } = JSON.parse(jobResult.result);
-  let decrypted = CypherText.decrypt(result, natsClient.secret);
-  console.log("Decrypted result:", decrypted);
+  let { result } = jobResult.result;
+  let decrypted = CypherText.decrypt(JSON.parse(result), natsClient.secret);
+  console.log("\nDecrypted result:", decrypted);
 }
 
 main(process.argv.slice(2))

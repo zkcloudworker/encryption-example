@@ -4,6 +4,7 @@ require("dotenv/config");
 const o1js_1 = require("o1js");
 const nats_client_1 = require("./nats-client");
 const zkcloudworker_1 = require("zkcloudworker");
+const encryption_1 = require("./encryption");
 async function startNATSClient() {
     // create some client address, this will be done by 
     // the web API BEFORE calling a worker
@@ -47,8 +48,12 @@ async function main(args) {
         throw new Error("Job ID is undefined");
     }
     console.log("Waiting for job ...");
-    const result = await api.waitForJobResult({ jobId });
-    console.log("Job encrypted result:", result);
+    const jobResult = await api.waitForJobResult({ jobId });
+    console.log("Job encrypted result:", JSON.stringify(jobResult, null, 2));
+    // extract final worker's 'result'
+    let { result } = jobResult.result;
+    let decrypted = encryption_1.CypherText.decrypt(JSON.parse(result), natsClient.secret);
+    console.log("Decrypted result:", decrypted);
 }
 main(process.argv.slice(2))
     .then(() => process.exit(0))

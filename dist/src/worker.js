@@ -5,7 +5,7 @@ const o1js_1 = require("o1js");
 const zkcloudworker_1 = require("zkcloudworker");
 const contract_1 = require("./contract");
 const encryption_1 = require("./encryption");
-const messages_1 = require("./messages");
+const nats_messages_1 = require("./nats-messages");
 let VerificationKey = null;
 async function isCompiled(vk) {
     if (!vk) {
@@ -53,7 +53,11 @@ class EncryptedWorker extends zkcloudworker_1.zkCloudWorker {
         console.log("Caller is: ", clientAddress);
         // send 'ready' message to the Web Client, with the worker's publicKey
         // so we can encrypt the payload on the client side using this key
-        const response = await (0, messages_1.postReadyMessage)(clientAddress, this.getAddress());
+        const optionsResponse = await (0, nats_messages_1.postOptionsMessage)(clientAddress, this.getAddress());
+        let { optionsCommand, encryptedOptions } = optionsResponse.data;
+        // send 'ready' message to the Web Client, with the worker's publicKey
+        // so we can encrypt the payload on the client side using this key
+        const response = await (0, nats_messages_1.postReadyMessage)(clientAddress, this.getAddress());
         let { command, encrypted } = response.data;
         // decrypt payload or raise error
         let decrypted = JSON.parse(encryption_1.CypherText.decrypt(encrypted, this.secretKey.toBase58()));
@@ -71,8 +75,8 @@ class EncryptedWorker extends zkcloudworker_1.zkCloudWorker {
         // report the final result to client, this may be redundant
         // as the result will be returned by the worker itself
         // but is an experimantal option 
-        await (0, messages_1.postDoneMessage)(clientAddress, result);
-        return result;
+        await (0, nats_messages_1.postDoneMessage)(clientAddress, result);
+        return JSON.stringify(result);
     }
 }
 exports.EncryptedWorker = EncryptedWorker;

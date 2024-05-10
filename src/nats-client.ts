@@ -34,11 +34,40 @@ export async function listen(subject: string) {
         
         switch (post) {
 
+          case 'options': {
+            // the workers announces it is ready 
+            // and we receive the worker's publicKey
+            let workerKey = params.key || "";
+            console.log("\nReceived 'options' message from worker");
+            console.log("Worker publicKey: ", workerKey);
+
+            // we will use its key to encrypt the message
+            const encryptedPayload = CypherText.encrypt(
+              JSON.stringify({ 
+                envEncryptionKey: "1234" 
+              }),
+              workerKey
+            );
+            console.log("Encrypted options: ", encryptedPayload);
+
+            // we reply with the command we want the worker to execute
+            // and with the encrypted payload 
+            msg.respond(codec.encode({ 
+              success: true,
+              data: {
+                command: "options",
+                encrypted: encryptedPayload,
+              },
+              error: undefined
+            }));
+          }
+          break;
+
           case 'ready': {
             // the workers announces it is ready 
             // and we receive the worker's publicKey
             let workerKey = params.key || "";
-            console.log("Received 'ready' message from worker");
+            console.log("\Received 'ready' message from worker");
             console.log("Worker publicKey: ", workerKey);
 
             // we will use its key to encrypt the message
@@ -65,7 +94,7 @@ export async function listen(subject: string) {
 
           case 'done': {
             let result = params.result || "";
-            console.log("Received 'done' message from worker");
+            console.log("\nReceived 'done' message from worker");
             msg.respond(codec.encode({ 
               success: true,
               data: { status: 'closed' },

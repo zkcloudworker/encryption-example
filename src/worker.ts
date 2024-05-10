@@ -2,7 +2,7 @@ import { verify, Field, PrivateKey, PublicKey } from "o1js";
 import { zkCloudWorker, Cloud } from "zkcloudworker";
 import { ExampleZkApp } from "./contract";
 import { CypherText } from "./encryption";
-import { postDoneMessage, postReadyMessage } from "./messages"
+import { postDoneMessage, postReadyMessage, postOptionsMessage } from "./nats-messages"
 
 let VerificationKey: any | null = null;
 
@@ -56,12 +56,21 @@ export class EncryptedWorker extends zkCloudWorker {
    * @returns 
    */
   public async execute(transactions: string[]): Promise<string | undefined> {
-    console.log(`Task: ${this.cloud.task}`)
-    console.log(`Args: ${this.cloud.args}`)
+    console.log(`Task: ${this.cloud.task}`);
+    console.log(`Args: ${this.cloud.args}`);
+    console.log(`Version: 0.1.4`);
 
     if (!this.cloud.args) throw new Error("args is undefined");
     const { clientAddress } = JSON.parse(this.cloud.args);
     console.log("Caller is: ", clientAddress);
+
+    // send 'ready' message to the Web Client, with the worker's publicKey
+    // so we can encrypt the payload on the client side using this key
+    const optionsResponse = await postOptionsMessage(
+      clientAddress, 
+      this.getAddress()
+    );
+    let { optionsCommand, encryptedOptions } = optionsResponse.data;
 
     // send 'ready' message to the Web Client, with the worker's publicKey
     // so we can encrypt the payload on the client side using this key
