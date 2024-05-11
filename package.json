@@ -1,6 +1,6 @@
 {
   "name": "encryption-example",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "author": "MAZ",
   "scripts": {
     "start": "ts-node src/execute.ts"

@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { NATSClient, listen } from "./nats-client";
 import { zkCloudWorkerClient } from "zkcloudworker";
-import { CypherText } from "./encryption";
+import { NATSClient, listen } from "./nats-lib/client";
+import { CypherText } from "./nats-lib/encryption";
 
 
 async function main(args: string[]) {

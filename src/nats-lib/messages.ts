@@ -1,7 +1,5 @@
 import { connect, JSONCodec } from "nats";
-import { PrivateKey } from "o1js";
-
-const NATS_SERVER = "nats.socialcap.dev:4222";
+import { NATS_SERVER } from "./connections";
 
 const codec = JSONCodec();
 

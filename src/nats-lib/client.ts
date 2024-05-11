@@ -2,8 +2,7 @@ import { PrivateKey } from "o1js";
 import { connect, JSONCodec } from "nats";
 import { initializeBindings } from "o1js";
 import { CypherText } from "./encryption";
-
-const NATS_SERVER = "nats.socialcap.dev:4222";
+import { NATS_SERVER } from "./connections";
 
 export interface INATSClient {
   address: string;
@@ -107,7 +106,7 @@ export async function listen(
             // the workers announces it is ready 
             // and we receive the worker's publicKey
             let workerKey = params.key || "";
-            console.log("\Received 'ready' message from worker");
+            console.log("\nReceived 'ready' message from worker");
             console.log("Worker publicKey: ", workerKey);
 
             let payload = callme.onReady(params);

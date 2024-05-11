@@ -1,8 +1,8 @@
 import { verify, Field, PrivateKey, PublicKey } from "o1js";
 import { zkCloudWorker, Cloud } from "zkcloudworker";
 import { ExampleZkApp } from "./contract";
-import { CypherText } from "./encryption";
-import { postDoneMessage, postReadyMessage, postOptionsMessage } from "./nats-messages"
+import { CypherText } from "./nats-lib/encryption";
+import { postDoneMessage, postReadyMessage, postOptionsMessage } from "./nats-lib/messages"
 
 let VerificationKey: any | null = null;
 
@@ -46,8 +46,8 @@ export class EncryptedWorker extends zkCloudWorker {
     return CypherText.encrypt(payload,  publicKey);
   }
 
-  public decrypt(encrypted: string, privateKey: string) {
-    return CypherText.decrypt(encrypted, privateKey);
+  public decrypt(encrypted: string) {
+    return CypherText.decrypt(encrypted, this.secretKey.toBase58());
   }
 
   /**
@@ -58,7 +58,7 @@ export class EncryptedWorker extends zkCloudWorker {
   public async execute(transactions: string[]): Promise<string | undefined> {
     console.log(`Task: ${this.cloud.task}`);
     console.log(`Args: ${this.cloud.args}`);
-    console.log(`Version: 0.1.4`);
+    console.log(`Version: 0.1.6`);
 
     if (!this.cloud.args) throw new Error("args is undefined");
     const { clientAddress } = JSON.parse(this.cloud.args);
@@ -70,7 +70,8 @@ export class EncryptedWorker extends zkCloudWorker {
       clientAddress, 
       this.getAddress()
     );
-    let optionsData = optionsResponse.data;
+    let options = this.decrypt(optionsResponse.data.encrypted);
+    console.log("Options: ", options);
 
     // send 'ready' message to the Web Client, with the worker's publicKey
     // so we can encrypt the payload on the client side using this key
