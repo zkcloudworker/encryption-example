@@ -1,11 +1,50 @@
+import { PrivateKey } from "o1js";
 import { connect, JSONCodec } from "nats";
 import { initializeBindings } from "o1js";
 import { CypherText } from "./encryption";
 
 const NATS_SERVER = "nats.socialcap.dev:4222";
 
+export interface INATSClient {
+  address: string;
+  secret: string;
+  callme: {
+    onOptions: (params: any) => void;
+    onReady: (params: any) => void;
+    onDone: (params: any) => void;
+  }
+}
 
-export async function listen(subject: string) {
+export async function NATSClient(callme: {
+  onOptions: (params: any) => void,
+  onReady: (params: any) => void,
+  onDone: (params: any) => void
+}): Promise<INATSClient> {
+  // create some client address, this will be done by 
+  // the web API BEFORE calling a worker
+  const secret = PrivateKey.random();
+  let address = secret.toPublicKey().toBase58();
+  console.log("Cliente address ", address);
+
+   // now subscribe and listen in this Address
+   // we use the 'zkcw' prefix for zkCloudWorkers subscriptions
+  await listen(`zkcw:${address}`, callme);
+
+  return { 
+    address: address, 
+    secret: secret.toBase58(),
+    callme: callme
+  };
+}
+
+export async function listen(
+  subject: string,
+  callme: {
+    onOptions: (params: any) => void;
+    onReady: (params: any) => void;
+    onDone: (params: any) => void;
+  }
+) {
   // Create a JSON codec for encoding and decoding messages
   const codec = JSONCodec();
 
@@ -41,14 +80,15 @@ export async function listen(subject: string) {
             console.log("\nReceived 'options' message from worker");
             console.log("Worker publicKey: ", workerKey);
 
+            let options = callme.onOptions(params);
+            console.log("options:", options)
+
             // we will use its key to encrypt the message
-            const encryptedPayload = CypherText.encrypt(
-              JSON.stringify({ 
-                envEncryptionKey: "1234" 
-              }),
+            const encryptedOptions = CypherText.encrypt(
+              JSON.stringify(options),
               workerKey
             );
-            console.log("Encrypted options: ", encryptedPayload);
+            console.log("Encrypted options: ", encryptedOptions);
 
             // we reply with the command we want the worker to execute
             // and with the encrypted payload 
@@ -56,7 +96,7 @@ export async function listen(subject: string) {
               success: true,
               data: {
                 command: "options",
-                encrypted: encryptedPayload,
+                encrypted: encryptedOptions,
               },
               error: undefined
             }));
@@ -70,11 +110,12 @@ export async function listen(subject: string) {
             console.log("\Received 'ready' message from worker");
             console.log("Worker publicKey: ", workerKey);
 
+            let payload = callme.onReady(params);
+            console.log("payload:", payload)
+
             // we will use its key to encrypt the message
             const encryptedPayload = CypherText.encrypt(
-              JSON.stringify({ 
-                value: Math.ceil(Math.random() * 100).toString() 
-              }),
+              JSON.stringify(payload),
               workerKey
             );
             console.log("Encrypted payload: ", encryptedPayload);
@@ -95,9 +136,16 @@ export async function listen(subject: string) {
           case 'done': {
             let result = params.result || "";
             console.log("\nReceived 'done' message from worker");
+
+            let done = callme.onDone(params);
+            console.log("done: ", done)
+
             msg.respond(codec.encode({ 
               success: true,
-              data: { status: 'closed' },
+              data: { 
+                command: "close",
+                status: JSON.stringify(done) 
+              },
               error: undefined
             }));
 

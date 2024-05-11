@@ -70,7 +70,7 @@ export class EncryptedWorker extends zkCloudWorker {
       clientAddress, 
       this.getAddress()
     );
-    let { optionsCommand, encryptedOptions } = optionsResponse.data;
+    let optionsData = optionsResponse.data;
 
     // send 'ready' message to the Web Client, with the worker's publicKey
     // so we can encrypt the payload on the client side using this key

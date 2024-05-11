@@ -1,30 +1,7 @@
 import "dotenv/config";
-import { PrivateKey } from "o1js";
-import { listen } from "./nats-client";
+import { NATSClient, listen } from "./nats-client";
 import { zkCloudWorkerClient } from "zkcloudworker";
 import { CypherText } from "./encryption";
-
-interface NATSClient {
-  address: string;
-  secret: string;
-}
-
-async function startNATSClient(): Promise<NATSClient> {
-  // create some client address, this will be done by 
-  // the web API BEFORE calling a worker
-  const secret = PrivateKey.random();
-  let address = secret.toPublicKey().toBase58();
-  console.log("Cliente address ", address);
-
-   // now subscribe and listen in this Address
-   // we use the 'zkcw' prefix for zkCloudWorkers subscriptions
-  await listen(`zkcw:${address}`);
-
-  return { 
-    address: address, 
-    secret: secret.toBase58()
-  };
-}
 
 
 async function main(args: string[]) {
@@ -32,7 +9,37 @@ async function main(args: string[]) {
 
   // start a NATS client to simulate the web API calling the worker
   // the caller web API instance will have a unique publicKey 
-  let natsClient = await startNATSClient();
+  let natsClient = await NATSClient({
+    // send 'options' to worker
+    // this is first message the worker will send BEFORE doing
+    // any work and can be used to pass encrypted options to it
+    // @returns - object with pre execution options
+    onOptions: (params: any) => {
+      return {
+        "envEncryptionKey": "1234"
+      }
+    },
+
+    // send payload to worker
+    // this is the second message the worker will send asking for the 
+    // transactions payload that needs for execution
+    // @returns - object with payload
+    onReady: (params: any) => {
+      return {
+         "value": Math.ceil(Math.random() * 100).toString() 
+      }
+    },
+
+    // send 'done' final status to worker
+    // this is the message worker will send with the final result
+    // when it has finished.
+    // @returns - object with final web client status
+    onDone: (params: any) => {
+      return {
+        "success": true
+      }
+    }
+  });
 
   // create the API client
   const api = new zkCloudWorkerClient({
