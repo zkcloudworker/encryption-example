@@ -1,9 +1,82 @@
-# Example using client/worker encryption
+# Client / Worker encryption
 
 An example with encryption between client and workers.
 
-See the documentation at 
-[Trust assumption: encrypting all the data that is being sent and stored](https://docs.zkcloudworker.com/privacy#trust-assumption-encrypting-all-the-data-that-is-being-sent-and-stored)
+The original [Trust assumption: encrypting all the data that is being sent and stored](https://docs.zkcloudworker.com/privacy#trust-assumption-encrypting-all-the-data-that-is-being-sent-and-stored) has been slightly modified 
+on implementation, but keeping all mentioned trust assumptions.
+
+The following graph shows the (updated) event flow between App and Worker:
+
+```mermaid
+sequenceDiagram
+  participant AppUI
+  participant NATSClient
+  participant zkCWClient
+  participant zkCWCloud
+  participant Worker
+  AppUI->>NATSClient: nats = new (onOptions, onReady, onDone)
+  NATSClient->>AppUI:  
+  AppUI->>zkCWClient: api = new (JWT)
+  zkCWClient->>AppUI: 
+  AppUI->>zkCWClient: jobId = api.execute (nats.address)
+  zkCWClient->>zkCWCloud: launch  (nats.address)
+  zkCWCloud->>zkCWClient: 
+  zkCWCloud->>Worker: launched (nats.address)
+  Worker->>zkCWCloud: 
+  zkCWClient->>AppUI: job
+  AppUI->>zkCWClient: result = api.waitForJob (job)
+  zkCWClient->>Worker: waiting job run
+  Worker->>NATSClient: 'options' message (worker.address, params)
+  NATSClient->>AppUI: options = onOptions(params)
+  AppUI->>NATSClient: 
+  NATSClient->>Worker: encrypted reply (options)
+  Worker->>Worker: setup (options) 
+  Worker->>NATSClient: 'ready' message (worker.address, params)
+  NATSClient->>AppUI: payload = onReady(params)
+  AppUI->>NATSClient: 
+  NATSClient->>Worker: encrypted reply (payload)
+  Worker->>Worker: execute transactions (payload)
+  Worker->>NATSClient: 'done' message (result, params)
+  NATSClient->>AppUI: status = onDone(params)
+  AppUI->>NATSClient: 
+  NATSClient->>Worker: reply (status)
+  Worker->>Worker: close (status) 
+  Worker->>zkCWClient: job completed (result)
+  zkCWClient->>AppUI: job completed (result)
+  AppUI->>AppUI: decrypt (result)
+  AppUI->>AppUI: close
+```
+
+**Componentes**:
+
+- `App UI`
+
+- `zkCloudWorkerClient (zkCW Client)`
+
+- `NATS Client`
+
+- `zkCloudWorkerCloud (zkCW Cloud)`
+
+- `zkCloudWorker (Worker)`
+
+**On handshaking encryption**:
+
+To preserve **privacy between the AppUI and the zkCloudWorker Worker**, we use a set of "crossed" key pairs which are created exclusively for this particular client<>worker interaction, and will be destroyed when the worker has finished.
+
+- On start the App will create a new NATSClient that will manage encrypted interactions between App and Worker.
+- This NATSClient will create a public/private key pair {cpk, csk} for itself.
+- When connecting with the zkCWCloud the zkCWClient will send the NATSClient public key (cpk) to the Launcher. 
+- This client public key (cpk) will be used by the zkCloudWorker Worker to encrypt its responses to the App.
+- When launching a new worker, the worker will also create a new  public/private key pair {wpk, wsk} for itself
+- The worker will return this public key (wpk) to the App when sending NATS messages 'option' and 'ready'. 
+- The received worker's public key (wpk) will be used by the NATSClient to encrypt the replies sent back to the worker.
+- The worker can decrypt the payloads sent by the client using the worker secret key (wsk).
+- The App can decrypt the responses from the worker using its client secret key (csk).
+
+As can bee seen, private keys are never exchanged and never leave its corresponding environment. Also the created used private keys are fully destroyed when the worker completes its work.
+
+So we can consider this to be **a secure private exchange between the App (in the browser) and the worker (in the cloud)**.
+
 
 ## Installation
 
