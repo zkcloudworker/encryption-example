@@ -3,7 +3,7 @@
   "version": "0.1.6",
   "author": "MAZ",
   "scripts": {
-    "start": "ts-node src/execute.ts"
+    "test": "ts-node src/execute.ts"
   },
   "devDependencies": {
     "@types/node": "^20.12.10",
